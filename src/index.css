@@ -1,0 +1,9 @@
+#root {
+    @apply w-screen h-screen justify-center items-center bg-zinc-600 flex flex-col
+}
+
+* {
+    transition: 300ms;
+}
+
+@import "tailwindcss"
