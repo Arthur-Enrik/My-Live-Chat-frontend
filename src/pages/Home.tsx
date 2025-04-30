@@ -67,7 +67,7 @@ function Home() {
         socket.on('connect_error', (msg) => console.log(msg))
 
         socket.on('message:received', (data) => {receiveMessage(data)})
-        socket.on('chatHasBeenUpdated', (chats: Chat) => setChats(chats))
+        socket.on('chatHasBeenUpdated', (chats: Chat) => {console.log(chats); setChats(chats)})
     }
 
     function receiveMessage(data: ReceivedMessage) {
