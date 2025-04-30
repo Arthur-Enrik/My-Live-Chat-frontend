@@ -2,119 +2,117 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { io } from 'socket.io-client'
 import API from "../utils/fetch.utils"
 
-import { ContactsNavbar } from "../components/ContactNavbar/ContactsNav"
+// Components
+import { ContactsNavbar } from "../components/ContactNavbar/ChatsNavbar"
 import { MessageInput } from "../components/Message/MessageInput"
 
 import { Header } from "../components/Home/Header"
 import { ChatWindow } from "../components/Home/ChatWindow"
 
+// Interfaces
+import { Chat } from "../interfaces/IChat.interface"
+import { ReceivedMessage } from "../interfaces/IReceivedMessage.interface"
+
+// Testes
 // eslint-disable-next-line
 export const token = localStorage.getItem('token') || '' // Temp
-export const id = 'd552e529-2c19-4536-b592-0b12ff44b1b3'
 
-interface Chat {
-    _id: string
-    username: string
-    messages: Array<{message: string, isOwner: boolean, id: string}>
-}
-
+const socket = io('http://localhost:3000', {auth: {token}})
 
 function Home() {
-    const socket = useMemo(() => io('http://localhost:3000', {auth: {token}}), [])
-
-    const [activeChat, setActiveChat] = useState<string>('')
-    const [chats, setChats] = useState<Record<string, Chat>>({})
-
-    const chat = useMemo(() => chats[activeChat], [activeChat, chats])
-
-    const getUserChats = () => {
-        const api = new API('http://localhost:3000/api/svc/chat/get', "GET", undefined, token)
-        api.fetch().then(res => res.json()).then(res => setChats(res.chats))
-    }
-
-    function saveChat(username: string, email: string) {
-        const api = new API('http://localhost:3000/api/svc/chat/add', "POST", {nickname: username, email: email})
-    }
-
-    const createChat = useCallback( async (userToAddId: string, message?: string, nickname?: string) => {
-        const api = new API(`http://localhost:3000/api/svc/get/${userToAddId}`, "GET", undefined, token)
-        try {
-
-            const res = await api.fetch()
-            const data = await res.json().catch(() => ({}))
-            if (!res.ok || !data || !data.user) return
-            setChats((prevChats) => {
-                const createChat: Chat = {
-                    username: data.user.username,
-                    _id: data.user._id,
-                    messages: message ? [{message, isOwner: false, id: crypto.randomUUID()}] : []
-                }
-                return {
-                    ...prevChats,
-                    [nickname || data.user.username]: createChat
-                }
-            })
-
-            return chats
-        } catch (error) {
-            return chats
+    const [chats, setChats] = useState<Chat>({})
+    const [activeChatName, setActiveChatName] = useState<string>('')
+    const activeChat = useMemo(() => {
+        for (const [_, item] of Object.entries(chats)) {
+            if (item.nickname === activeChatName) {
+                return item
+            } else if (item.username === activeChatName) {
+                return item
+            }
         }
+        return undefined
+    }, [activeChatName, chats])
+    const chatNames = useMemo(() => {
+        const names: string[] = []
+        for (const [_,item] of Object.entries(chats)) {
+            names.push(item.nickname || item.username)
+        }
+        // console.log(chats)
+        return names
     }, [chats])
 
-    function sendMessage(newMessage: string) {
-        console.log(newMessage)
-        console.log(chats)
-        if (!newMessage) return chats
-        if (!chat || !chat._id) return chats
-
-        setChats((prevChats) => {
-            const currentChat = prevChats[activeChat]
-
-            if (!currentChat) return prevChats
-            const updatedChat: Chat = {
-                ...currentChat,
-                messages: [...currentChat.messages, {message: newMessage, isOwner: true, id: crypto.randomUUID()} ]
-            }
-            return {
-                ...prevChats,
-                [activeChat]: updatedChat
-            }
-        })
-
-        socket.emit('message:sended', {senderId: id, receivedId: chat._id, msg: newMessage})
-    }
-
-    const receiveMessage = useCallback( async (data: {from: string, message: string}) => {
-        console.log('Recebida!')
-        if (!data) return
-        const {from, message} = data
-
-        if (!Object.entries(chats).find(([_, chat]) => chat._id === from)) {
-            await createChat(from, message)
-        }
-        
-    }, [createChat, chats])
-
-    const socketInit = () => {
-        socket.on('connect', () => console.log('Socket conectado!'))
-        socket.on('connect_error', (error) => console.error(error))
-        socket.on('disconnect', (message) => console.log(message))
-        socket.on('message:received', receiveMessage)
-    }
-
     useEffect(() => {
+        initSocketListeners()
         getUserChats()
-        socketInit()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line
     }, [])
 
+    async function getUserChats() {
+        const api = new API('http://localhost:3000/api/chats', "GET", undefined, token)
+        try {
+            const res = await api.fetch()
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) {
+                alert(`${data.message ||'Ocorreu um erro status:' + res.status}`)
+                return
+            }
+            const chats: Chat = data.chats || {}
+            setChats(chats)
+        } catch (error) {
+            console.error(error)
+        }
+    }
+    function initSocketListeners() {
+        socket.on('connect', () => {getUserChats();console.log('Socket connected!')})
+        socket.on('connect_error', (msg) => console.log(msg))
+
+        socket.on('message:received', (data) => {receiveMessage(data)})
+        socket.on('chatHasBeenUpdated', (chats: Chat) => setChats(chats))
+    }
+
+    function receiveMessage(data: ReceivedMessage) {
+        setChats((prevChats) => {
+            console.log(prevChats)
+            console.log('id', data.from)
+            if (!prevChats[data.from]) return prevChats
+
+            return {
+                ...prevChats,
+                [data.from]: {
+                    ...prevChats[data.from],
+                    messages: [
+                        ...(prevChats[data.from]?.messages || []),
+                        { message: data.message, isOwner: false, messageId: crypto.randomUUID() }
+                    ]
+                }
+            };
+        });
+    }
+
+    function sendMessage(message: string) {
+        if (!message || !message.trim()) return
+        socket.emit('message:sended', {receivedId: activeChat?._id, message })
+        setChats((prevChats) => {
+            if (!activeChat) return prevChats
+            return {
+                ...prevChats,
+                [activeChat._id]: {
+                    ...activeChat,
+                    messages: [
+                        ...(prevChats[activeChat._id]?.messages || []),
+                        { message, isOwner: true, messageId: crypto.randomUUID() }
+                    ]
+                }
+            };
+        });
+    }
     return (
         <main className="h-1/2 w-6xl bg-zinc-900 rounded-md flex z-10 shadow-md">
-            <ContactsNavbar chats={Object.keys(chats)} setActiveWindow={setActiveChat} />
+            <ContactsNavbar chats={chatNames} setActiveWindow={setActiveChatName} />
             <section className="w-full h-full p-1 flex flex-col">
-                <Header nickname={activeChat} />
-                <ChatWindow messages={chat?.messages} />
-                <MessageInput  sendMessage={sendMessage}/>
+                <Header nickname={activeChat?.nickname || activeChat?.username} />
+                <ChatWindow messages={activeChat?.messages} />
+                <MessageInput sendMessage={sendMessage} haveActiveChat={activeChat ? true : false} />
             </section>
         </main>
     )
