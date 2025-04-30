@@ -1,15 +1,15 @@
-import { FormEvent, useState } from "react"
+import { FormEvent, useState, useMemo } from "react"
 import API from '../../utils/fetch.utils'
 
 import { X } from "lucide-react"
-
-import { token } from "../../pages/Home"
 
 interface Props {
     setShowAddChat?: (show: boolean) => void
 }
 
 function AddChat({setShowAddChat}: Props) {
+    const token = useMemo(() => localStorage.getItem('token') || '', [])
+
     const [email, setEmail] = useState<string>('')
     const [nickname, setNickname] = useState<string>('')
 

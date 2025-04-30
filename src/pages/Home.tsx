@@ -13,13 +13,12 @@ import { ChatWindow } from "../components/Home/ChatWindow"
 import { Chat } from "../interfaces/IChat.interface"
 import { ReceivedMessage } from "../interfaces/IReceivedMessage.interface"
 
-// Testes
-// eslint-disable-next-line
-export const token = localStorage.getItem('token') || '' // Temp
-
-const socket = io('http://localhost:3000', {auth: {token}})
+// const socket = io('http://localhost:3000', {auth: {token}})
 
 function Home() {
+    const token = useMemo(() => localStorage.getItem('token') || '', [])
+    const socket = useMemo(() => io('http://localhost:3000', {auth: {token}}), [])
+
     const [chats, setChats] = useState<Chat>({})
     const [activeChatName, setActiveChatName] = useState<string>('')
     const activeChat = useMemo(() => {
