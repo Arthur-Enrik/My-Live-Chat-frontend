@@ -2,15 +2,37 @@ import { FormEvent, useState, useMemo } from "react"
 
 import { X } from "lucide-react"
 
-function OverlayAddUser() {
+import { getUserByEmail } from "../../services/User/get-users-by-email.service"
+
+import { UserCell } from "./UserCell"
+
+interface Props {
+    setShowOverlay: (balue: boolean) => void
+}
+
+function OverlayAddUser({setShowOverlay}: Props) {
+    const [inputEmail, setInputEmail] = useState<string>('')
+    const [users, setUsers] = useState<Array<{username: string, email: string}>>([])
+
+    async function getUsers() {
+        if (!inputEmail) return
+        const users = await getUserByEmail(inputEmail)
+        setUsers(users)
+    }
+
     return (
-        <form className="bg-zinc-800 w-96 h-44 z-50 flex flex-col gap-2 ease-in-out pt-6 justify-center items-center fixed top-3 left-1/2 rounded-md shadow-2xl" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-            <button className="absolute right-2 top-1 hover:cursor-pointer"><X /></button>
-            <p className="absolute top-1">Adicionar um contato</p>
-            <input className="text-center border-1 rounded-md p-1" type="text" placeholder="Email do usuário" />
-            <input className="text-center border-1 rounded-md p-1" type="text" placeholder="Apelido que deseja" />
-            <button type="submit" className="bg-zinc-500 rounded-md p-1 hover:cursor-pointer hover:bg-white/20">Adicionar</button>
-        </form>
+        <div className="fixed w-screen h-screen inset-0 bg-black/50 flex justify-center items-center z-50 ">
+            <div className="flex flex-col p-2 w-90 h-1/2 bg-zinc-800 rounded-md z-20">
+                <button className="fixed self-start hover:cursor-pointer" onClick={() => setShowOverlay(false)}><X /></button>
+                <li className="flex flex-col gap-2 p-2 w-full overflow-y-auto h-full">
+                    {users.length > 0 ? users.map(user => <UserCell username={user.username} email={user.email} key={user.email} />) : <span className="text-center w-full">Não foi encontrado nenhum usuário</span>}
+                </li>
+                <form onSubmit={(e) => e.preventDefault()} className="flex w-full h-fit self-end-safe gap-2 bg-zinc-700 p-1 rounded-md">
+                    <input value={inputEmail} onChange={e => {setInputEmail(e.target.value); getUsers()}} type="email" placeholder="Digite o email do usuário" className="h-8 w-full outline-none p-1" />
+                    <button type="submit" className="w-fit hover:cursor-pointer hover:bg-black/20">Adicionar</button>
+                </form>
+            </div>
+        </div>
     )
 }
 
