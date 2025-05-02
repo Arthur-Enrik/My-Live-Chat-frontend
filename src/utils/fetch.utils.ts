@@ -1,40 +1,63 @@
-type methods = 'POST' | 'GET' | 'PUT'
+const URL = import.meta.env.VITE_URL as string
+
 
 class API {
-    private url: string
-    private method: methods
-    private body?: BodyInit
-    private token?: string
-    constructor(url:string, method: methods, body?: object, token?: string){
-        this.url = url
-        this.method = method
-        this.body = body ? JSON.stringify(body) : undefined
-        this.token = token
+    static async get<T>(relativeRoute: string, token?: string): Promise<[Response, T]> {
+        const option = {
+            method: 'GET',
+            headers: generateHeader(token)
+        } as RequestInit
+
+        const res = await fetch(`${URL}${relativeRoute}`, option)
+        const data = await res.json().catch(() => ({})) as T
+
+        return [res, data]
     }
-    async fetch() {
-        const options: RequestInit = {
-            method: this.method,
-            headers: genHeaders(this.token),
-        }
-        if (this.method !== 'GET' && this.body) {
-            options.body = this.body
-        }
-        const res = await fetch(this.url, options)
-        return res
+    static async put<T>(relativeRoute: string, body: object, token?: string): Promise<[Response, T]> {
+        const option = {
+            method: 'PUT',
+            headers: generateHeader(token),
+            body: JSON.stringify(body)
+        } as RequestInit
+        
+        const res = await fetch(`${URL}${relativeRoute}`, option)
+        const data = await res.json().catch(() => ({})) as T
+
+        return [res, data]
+    }
+    static async post<T>(relativeRoute: string, body: object, token?: string): Promise<[Response, T]> {
+        const option = {
+            method: 'POST',
+            headers: generateHeader(token),
+            body: JSON.stringify(body)
+        } as RequestInit
+        
+        const res = await fetch(`${URL}${relativeRoute}`, option)
+        const data = await res.json().catch(() => ({})) as T
+
+        return [res, data]
+    }
+    static async delete<T>(relativeRoute: string, token: string): Promise<[Response, T]> {
+        const option = {
+            method: 'DELETE',
+            headers: generateHeader(token)
+        } as RequestInit
+        
+        const res = await fetch(`${URL}${relativeRoute}`, option)
+        const data = await res.json().catch(() => ({})) as T
+
+        return [res, data]
     }
 }
 
-function genHeaders(token?: string): HeadersInit {
-    if (token) {
-        return {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }        
-    } else {
-        return {
-            'Content-Type': 'application/json'
-        }   
+function generateHeader(token?: string) {
+    if (token) return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    } 
+    else return {
+        'Content-Type': 'application/json'
     }
 }
 
-export default API
+export {API}

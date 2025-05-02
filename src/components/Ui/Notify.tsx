@@ -6,6 +6,7 @@ interface Props {
 }
 
 function Notify({notifyType, message}: Props) {
+    
     const NotifyTypes = {
         WARN: 'bg-yellow-400',
         ALERT: 'bg-white',
