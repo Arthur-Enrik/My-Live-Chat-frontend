@@ -11,6 +11,8 @@ async function registerUser(username: string, email: string, password: string) {
 
     if (!res.ok) {throw new Error(data.message || `status: ${res.status}`)}
     if (!data.success) {throw new Error(data.message || `Status: ${res.status}`)}
+
+    return data.message
 }
 
 export {registerUser}

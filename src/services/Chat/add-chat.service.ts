@@ -1,11 +1,14 @@
 import { API } from "../../utils/fetch.utils";
+import { TOKEN } from "../../utils/token.utils";
 
 // Interfaces
 import { BaseResponse } from "../../interfaces/IBaseResponse"; 
 
 type Body = {email: string, nickname?: string}
 
-async function addChat(email: string, token:string, nickname?: string) {
+const token = TOKEN.get()
+
+async function addChat(email: string, nickname?: string) {
     const body: Body = {
         email
     }
@@ -17,7 +20,7 @@ async function addChat(email: string, token:string, nickname?: string) {
     if (!res.ok) throw new Error(data.message || `Status: ${res.status}`)
     if (!data.success) throw new Error(data.message || `Status: ${res.status}`)
 
-    return data
+    return data.message
     
 }
 

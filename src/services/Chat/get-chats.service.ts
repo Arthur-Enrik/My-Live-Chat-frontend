@@ -1,17 +1,24 @@
 import { API } from "../../utils/fetch.utils";
+import { TOKEN } from "../../utils/token.utils";
 
 // Interfaces
 import { BaseResponse } from "../../interfaces/IBaseResponse";
+import { Chat } from "../../interfaces/IChat.interface";
 
-async function getChat(token:string) {
+const token = TOKEN.get()
+console.log(token)
 
-    const [res, data] = await API.get<BaseResponse>("/api/chats", token)
+interface ChatResponse extends BaseResponse {
+    chats: Chat
+}
+
+async function getChat() {
+    const [res, data] = await API.get<ChatResponse>("/api/chats", token)
     
     if (!res.ok) throw new Error(data.message || `Status: ${res.status}`)
     if (!data.success) throw new Error(data.message || `Status: ${res.status}`)
     
-    return data
-        
+    return data.chats
 }
 
 export {getChat}

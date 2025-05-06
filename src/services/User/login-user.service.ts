@@ -1,4 +1,5 @@
 import { API } from "../../utils/fetch.utils";
+import { TOKEN } from "../../utils/token.utils";
 
 interface LoginResponse {
     success: boolean
@@ -14,11 +15,10 @@ interface LoginResponse {
 async function loginUser(email: string, password: string) {
     const [res, data] = await API.post<LoginResponse>('/api/users/auth', {email, password})
 
-    if (!res.ok) {throw new Error(data.message || `status: ${res.status}`)}
-    if (!data.success) {throw new Error(data.message || `Status: ${res.status}`)}
+    if (!data.success) throw new Error(data.message || `Status: ${res.status}`)
 
-    return data
-
+    TOKEN.set(data.token)
+    return data.message
 }
 
 export {loginUser}
