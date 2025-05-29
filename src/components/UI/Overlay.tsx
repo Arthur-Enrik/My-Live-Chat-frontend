@@ -1,0 +1,3 @@
+function OverlayComponent() {}
+
+export { OverlayComponent };

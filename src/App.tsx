@@ -1,36 +1,38 @@
-import { createBrowserRouter, Router, RouterProvider } from "react-router-dom"
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
-import { Home } from "./pages/Home"
-import { Welcome } from "./pages/Welcome"
+import { Chat } from "./pages/Chats";
+import { Login } from "./pages/Registration/Login";
+import { Register } from "./pages/Registration/Register";
 
-import { Login } from "./pages/Login"
-import { Register } from "./pages/Register"
+import { NotFound } from "./pages/UtilsPages/NotFound";
+import { ProtectedRoute } from "./pages/UtilsPages/ProtectedRoute";
 
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Welcome />
-  },
-  {
-    path: "/login",
-    element: <Login />
-  },
-  {
-    path: '/register',
-    element: <Register />
-  },
-  {
-    path: '/chats',
-    element: <Home />
-  }
-])
+	{
+		element: <ProtectedRoute />,
+		children: [
+			{
+				path: "/chat",
+				element: <Chat />,
+			},
+		],
+	},
+	{
+		path: "/login",
+		element: <Login />,
+	},
+	{
+		path: "/register",
+		element: <Register />,
+	},
+	{
+		path: "*",
+		element: <NotFound />,
+	},
+]);
 
 function App() {
-  return (
-    <>
-      <RouterProvider router={router}/>
-    </>
-  )
+	return <RouterProvider router={router} />;
 }
 
-export { App }
+export { App };
