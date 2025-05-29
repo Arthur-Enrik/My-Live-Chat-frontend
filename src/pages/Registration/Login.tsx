@@ -36,7 +36,6 @@ function Login() {
 
 		if (!res.ok || !data.success) {
 			formErrorHandle(data.errors);
-			console.log(data);
 			return;
 		}
 

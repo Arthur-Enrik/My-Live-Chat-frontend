@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
+
+import { Plus } from "lucide-react";
 
 // Utils
 import { API } from "../utils/fetch.utils";
@@ -10,6 +13,7 @@ import { Contact } from "../components/Chat/Contact";
 import { ButtonComponent } from "../components/Forms/Button";
 import { InputComponent } from "../components/Forms/Input";
 import { Message } from "../components/Chat/Message";
+import { OverlayAddChat } from "../components/Chat/OverlayAddChat";
 
 // Interfaces
 interface IChat {
@@ -29,8 +33,9 @@ const socket = io("http://localhost:3000", {
 });
 
 function Chat() {
+	const navigate = useNavigate();
 	const [chats, setChats] = useState<UserChat | null>(null);
-	const [activeChatName, setActiveChat] = useState<string | null>();
+	const [activeChatName, setActiveChat] = useState<string | null>(null);
 
 	const activeChat = useMemo(() => {
 		if (!chats || !activeChatName) return;
@@ -48,10 +53,18 @@ function Chat() {
 		return chatNames;
 	}, [chats]);
 
+	// State for add chat
+	const [showAddChatOverlay, setShowAddChatOverlay] = useState<boolean>(false);
+	const [usersFoundByEmail, setUsersFoundByEmail] =
+		useState<Array<{ email: string; username: string }>>();
+
 	useEffect(() => {
 		socket.on("connect", () => console.log("Conectado!"));
-		socket.on("connect_error", (error) => console.log(`Falha na conexão ${error}`));
-
+		socket.on("connect_error", (error) => {
+			alert("Ocorreu um erro ao se conectar no servidor");
+			console.error(`Ocorreu um erro ao se conectar no servidor ${error}`);
+		});
+		//
 		socket.on("message:received", ({ from, message }) => receivedMessageHandle(from, message));
 
 		const fetchChats = async () => {
@@ -59,6 +72,9 @@ function Chat() {
 				"/chats",
 				TOKEN.get()
 			);
+			if (res.status === 401) {
+				navigate("/login");
+			}
 			if (!res.ok || !data.success) {
 				alert("Ocorreu um erro no servidor, tente novamente mais tarde");
 				return;
@@ -68,6 +84,7 @@ function Chat() {
 		fetchChats();
 
 		return () => {
+			socket.disconnect();
 			socket.off("connect");
 			socket.off("connect_error");
 			socket.off("message:received");
@@ -151,20 +168,24 @@ function Chat() {
 		});
 	}
 
-	function getUserIdByUsername(username: string) {
-		if (!chats) return;
-
-		const chat = Object.values(chats).find((item) => item.username === username);
-
-		return chat?._id;
-	}
-
 	return (
 		<main className="bg-zinc-900 flex items-center w-1/2 h-1/2 rounded-md shadow-md border-1 border-purple-500/5">
-			<nav className="w-1/4 h-full p-1 rounded-md bg-zinc-800 flex flex-col gap-1">
-				{chatNames?.map((name) => (
-					<Contact key={name} name={name} selectContact={changeActiveChat} />
-				))}
+			<nav className="w-1/4 h-full p-1 rounded-md bg-zinc-800 flex flex-col relative gap-1">
+				{chatNames && chatNames.length > 0 ? (
+					chatNames?.map((name) => (
+						<Contact key={name} name={name} selectContact={changeActiveChat} />
+					))
+				) : (
+					<span className="w-full text-white text-center font-bold">
+						Você ainda não possui nenhuma conversa
+					</span>
+				)}
+				<button
+					onClick={() => setShowAddChatOverlay(!showAddChatOverlay)}
+					className="bottom-1 right-1 p-1 w-fit h-fit absolute text-white rounded-md border-1 border-zinc-500/20 bg-zinc-600/20 hover:cursor-pointer hover:bg-zinc-300 hover:text-zinc-800"
+				>
+					<Plus />
+				</button>
 			</nav>
 
 			<section className="flex flex-col w-full h-full bg-zinc-900">
@@ -200,6 +221,13 @@ function Chat() {
 					<ButtonComponent text="Enviar" type="submit" />
 				</form>
 			</section>
+			{showAddChatOverlay && (
+				<OverlayAddChat
+					Users={usersFoundByEmail}
+					showOverlay={setShowAddChatOverlay}
+					setUsersFoundByEmail={setUsersFoundByEmail}
+				/>
+			)}
 		</main>
 	);
 }
