@@ -63,7 +63,9 @@ function Chat() {
 		socket.on("connect_error", (error) => {
 			alert("Ocorreu um erro ao se conectar no servidor");
 			console.error(`Ocorreu um erro ao se conectar no servidor ${error}`);
+			navigate("/login");
 		});
+		socket.on("chatHasBeenUpdated", () => fetchChats());
 		//
 		socket.on("message:received", ({ from, message }) => receivedMessageHandle(from, message));
 
