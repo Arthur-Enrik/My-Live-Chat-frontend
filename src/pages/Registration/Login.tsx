@@ -5,6 +5,7 @@ import { TOKEN } from "../../utils/token.utils";
 
 import { ButtonComponent } from "../../components/Forms/Button";
 import { InputComponent } from "../../components/Forms/Input";
+import { Notify } from "../UtilsPages/Notification";
 
 // Icons
 import { Mail, Lock } from "lucide-react";
@@ -15,6 +16,10 @@ function Login() {
 
 	const [emailError, setEmailError] = useState("");
 	const [passwordError, setPasswordError] = useState("");
+
+	const [showNotify, setShowNotify] = useState(false);
+	const [notifyType, setNotifyType] = useState<"MSG" | "WARN" | "ERR">("MSG");
+	const [notifyMessage, setNotifyMessage] = useState<string>("");
 
 	const navigate = useNavigate();
 
@@ -40,14 +45,26 @@ function Login() {
 		}
 
 		TOKEN.set(data.token);
-		alert(data.message);
+		notifyHandler(data.message, "MSG", 3000);
 
-		navigate("/chat");
+		setTimeout(() => {
+			navigate("/chat");
+		}, 3000);
+	}
+
+	function notifyHandler(message: string, type: "MSG" | "ERR" | "WARN", duration: number = 1000) {
+		setNotifyMessage(message);
+		setNotifyType(type);
+		setShowNotify(true);
+
+		setTimeout(() => {
+			setShowNotify(false);
+		}, duration);
 	}
 
 	function formErrorHandle(errors: Array<{ field: string; message: string }>) {
 		if (!Array.isArray(errors)) {
-			alert("Ocorreu um erro inesperado");
+			notifyHandler("Ocorreu um erro inesperado", "ERR", 2000);
 		}
 		errors.forEach((error) => {
 			switch (error.field) {
@@ -58,7 +75,7 @@ function Login() {
 					setPasswordError(error.message);
 					break;
 				default:
-					alert("Ocorreu um erro no servidor, tente novamente mais tarde");
+					notifyHandler("Ocorreu um erro no servidor, tente novamente mais tarde", "ERR", 2000);
 					break;
 			}
 		});
@@ -107,6 +124,7 @@ function Login() {
 					<strong>clique aqui!</strong>
 				</Link>
 			</p>
+			{showNotify && <Notify type={notifyType} message={notifyMessage} />}
 		</main>
 	);
 }

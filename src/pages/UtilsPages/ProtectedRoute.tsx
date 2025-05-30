@@ -5,7 +5,7 @@ import { TOKEN } from "../../utils/token.utils";
 function ProtectedRoute() {
 	const token = TOKEN.get();
 
-	if (!token) return <Navigate to="/login" replace />;
+	// if (!token) return <Navigate to="/login" replace />;
 
 	return <Outlet />;
 }

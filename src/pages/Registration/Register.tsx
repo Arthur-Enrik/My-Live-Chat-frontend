@@ -4,6 +4,7 @@ import { API } from "../../utils/fetch.utils";
 
 import { ButtonComponent } from "../../components/Forms/Button";
 import { InputComponent } from "../../components/Forms/Input";
+import { Notify } from "../UtilsPages/Notification";
 
 // Icons
 import { Mail, Lock, User } from "lucide-react";
@@ -16,6 +17,10 @@ function Register() {
 	const [usernameError, setUsernameError] = useState("");
 	const [emailError, setEmailError] = useState("");
 	const [passwordError, setPasswordError] = useState("");
+
+	const [showNotify, setShowNotify] = useState(false);
+	const [notifyType, setNotifyType] = useState<"MSG" | "WARN" | "ERR">("MSG");
+	const [notifyMessage, setNotifyMessage] = useState<string>("");
 
 	const navigate = useNavigate();
 
@@ -42,14 +47,27 @@ function Register() {
 			return;
 		}
 
-		alert(data.message);
+		notifyHandler(data.message, "WARN", 3000);
 
-		navigate("/login");
+		setTimeout(() => {
+			navigate("/login");
+		}, 3000);
+	}
+
+	function notifyHandler(message: string, type: "MSG" | "ERR" | "WARN", duration: number = 1000) {
+		setNotifyMessage(message);
+		setNotifyType(type);
+		setShowNotify(true);
+
+		setTimeout(() => {
+			setShowNotify(false);
+		}, duration);
 	}
 
 	function formErrorHandle(errors: Array<{ field: string; message: string }>) {
 		if (!Array.isArray(errors)) {
-			alert("Ocorreu um erro inesperado");
+			notifyHandler("Ocorreu um erro inesperado", "ERR", 3000);
+			return;
 		}
 		errors.forEach((error) => {
 			switch (error.field) {
@@ -63,7 +81,7 @@ function Register() {
 					setPasswordError(error.message);
 					break;
 				default:
-					alert("Ocorreu um erro no servidor, tente novamente mais tarde");
+					notifyHandler("Ocorreu um erro no servidor, tente novamente mais tarde", "ERR", 3000);
 					break;
 			}
 		});
@@ -122,6 +140,7 @@ function Register() {
 					<strong> clique aqui!</strong>
 				</Link>
 			</p>
+			{showNotify && <Notify type={notifyType} message={notifyMessage} />}
 		</main>
 	);
 }

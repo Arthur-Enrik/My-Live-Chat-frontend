@@ -14,6 +14,7 @@ import { ButtonComponent } from "../components/Forms/Button";
 import { InputComponent } from "../components/Forms/Input";
 import { Message } from "../components/Chat/Message";
 import { OverlayAddChat } from "../components/Chat/OverlayAddChat";
+import { Notify } from "./UtilsPages/Notification";
 
 // Interfaces
 interface IChat {
@@ -36,6 +37,15 @@ const socket = io(socketURL, {
 
 function Chat() {
 	const navigate = useNavigate();
+	const [notificationPermission, setNotificationPermission] = useState<
+		"granted" | "denied" | "default"
+	>("default");
+
+	// Control notification component
+	const [showNotify, setShowNotify] = useState(false);
+	const [notifyType, setNotifyType] = useState<"MSG" | "WARN" | "ERR">("MSG");
+	const [notifyMessage, setNotifyMessage] = useState<string>("");
+
 	const [chats, setChats] = useState<UserChat | null>(null);
 	const [activeChatName, setActiveChat] = useState<string | null>(null);
 
@@ -60,15 +70,40 @@ function Chat() {
 	const [usersFoundByEmail, setUsersFoundByEmail] =
 		useState<Array<{ email: string; username: string }>>();
 
+	function notificationHandler(title: string, message: string) {
+		if (!("Notification" in window) || Notification.permission !== "granted") {
+			return;
+		}
+		const opcoes = {
+			body: message,
+		};
+		const notificacao = new Notification(title, opcoes);
+		notificacao.onclick = (event) => {
+			event.preventDefault();
+			window.focus();
+			notificacao.close();
+		};
+	}
+	function notifyHandler(message: string, type: "MSG" | "ERR" | "WARN", duration: number = 1000) {
+		setNotifyMessage(message);
+		setNotifyType(type);
+		setShowNotify(true);
+
+		setTimeout(() => {
+			setShowNotify(false);
+		}, duration);
+	}
+
 	useEffect(() => {
 		socket.on("connect", () => console.log("Conectado!"));
 		socket.on("connect_error", (error) => {
-			alert("Ocorreu um erro ao se conectar no servidor");
+			notifyHandler("Ocorreu um erro no servidor, tente novamente mais tarde", "ERR", 5000);
 			console.error(`Ocorreu um erro ao se conectar no servidor ${error}`);
-			navigate("/login");
+			setTimeout(() => {
+				navigate("/login");
+			}, 5000);
 		});
 		socket.on("chatHasBeenUpdated", () => fetchChats());
-		//
 		socket.on("message:received", ({ from, message }) => receivedMessageHandle(from, message));
 
 		const fetchChats = async () => {
@@ -77,14 +112,23 @@ function Chat() {
 				TOKEN.get()
 			);
 			if (res.status === 401) {
-				navigate("/login");
+				notifyHandler("Falha na autenticação", "ERR", 3000);
+				setTimeout(() => {
+					navigate("/login");
+				}, 3000);
+				return;
 			}
 			if (!res.ok || !data.success) {
-				alert("Ocorreu um erro no servidor, tente novamente mais tarde");
+				notifyHandler("Ocorreu um erro no servidor, tente novamente mais tarde", "ERR", 5000);
 				return;
 			}
 			setChats(data.chats);
 		};
+		const requestNotificationPermission = async () => {
+			const permission = await Notification.requestPermission();
+			setNotificationPermission(permission);
+		};
+		requestNotificationPermission();
 		fetchChats();
 
 		return () => {
@@ -122,6 +166,7 @@ function Chat() {
 			};
 
 			const chatToUpdate = prevChats[senderId];
+			notificationHandler(chatToUpdate.username, message);
 
 			const updatedMessage = [...chatToUpdate.messages, newMessageObj];
 
@@ -232,6 +277,7 @@ function Chat() {
 					setUsersFoundByEmail={setUsersFoundByEmail}
 				/>
 			)}
+			{showNotify && <Notify type={notifyType} message={notifyMessage} />}
 		</main>
 	);
 }
