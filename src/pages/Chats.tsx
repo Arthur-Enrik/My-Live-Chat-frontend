@@ -26,7 +26,9 @@ interface UserChat {
 	[key: string]: IChat;
 }
 
-const socket = io("http://localhost:3000", {
+const socketURL = import.meta.env.VITE_URL === "/api" ? undefined : "http://localhost:3000";
+
+const socket = io(socketURL, {
 	auth: {
 		token: TOKEN.get(),
 	},
